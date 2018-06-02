@@ -1,11 +1,7 @@
 const fetch = require("node-fetch");
 const cors = require("cors");
-const redis = require("redis");
-const { promisify } = require("util");
-const client = redis.createClient();
 
-const getAsync = promisify(client.get).bind(client);
-const existsAsync = promisify(client.exists).bind(client);
+const Cache = require("./Cache");
 
 const PORT = 8080;
 
@@ -16,13 +12,15 @@ const express = require("express");
 const app = express();
 app.use(cors());
 
+const cache = new Cache();
+
 const Endpoints = {
     PlayerSummary: `ISteamUser/GetPlayerSummaries/v2/`,
     Games: `IPlayerService/GetOwnedGames/v1/`,
     RecentGames: `IPlayerService/GetRecentlyPlayedGames/v1/`,
     FriendList: `ISteamUser/GetFriendList/v1/`,
     SteamNews: `ISteamNews/GetNewsForApp/v2/`,
-    Achievements: `ISteamUserStats/GetUserStatsForGame/v2`
+    Achievements: `/ISteamUserStats/GetPlayerAchievements/v1/`
 }
 
 async function SteamApi(method, params) {
@@ -32,14 +30,14 @@ async function SteamApi(method, params) {
     const request = `${url}&${params}`;
     console.log(request);
 
-    const exists = await existsAsync(request);
+    const exists = await cache.exists(request);
 
     if (exists) {
-        return getAsync(request).then(res => JSON.parse(res));
+        return cache.get(request).then(res => JSON.parse(res));
     }
     else {
         const res = await fetch(request).then(res => res.json());
-        client.set(request, JSON.stringify(res));
+        cache.set(request, JSON.stringify(res));
         return res;
     }
 }
@@ -76,20 +74,19 @@ app.get("/steamNews/:id", (req, res) => {
     SteamApi(Endpoints.SteamNews, {
         appid: req.params.id,
         count: 3,
-        maxlength: 200
+        maxlength: 300
     }).then(data => res.send(data));
 });
 
 app.get("/achievements/:id", (req, res) => {
     SteamApi(Endpoints.Achievements, {
-        input_json: JSON.stringify({
-            steamid: req.params.id,
-            appid: req.query.appid
-        })
-    }).then(data => res.send(data));
+        steamid: req.params.id,
+        appid: req.query.appid
+    }
+    ).then(data => res.send(data));
 });
 
 app.listen(PORT, () => {
-    client.flushdb();
+    cache.clear();
     console.log(`listening on port ${PORT}`);
 });
