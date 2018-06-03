@@ -5,7 +5,7 @@ const Cache = require("./Cache");
 
 const PORT = 8080;
 
-const apiKey = "";
+const apiKey = "7B4DEF2A374D9B1AA1E9BC9538412237";
 const apiEndpoint = "http://api.steampowered.com";
 
 const express = require("express");
@@ -20,7 +20,8 @@ const Endpoints = {
     RecentGames: `IPlayerService/GetRecentlyPlayedGames/v1/`,
     FriendList: `ISteamUser/GetFriendList/v1/`,
     SteamNews: `ISteamNews/GetNewsForApp/v2/`,
-    Achievements: `/ISteamUserStats/GetPlayerAchievements/v1/`
+    Achievements: `/ISteamUserStats/GetPlayerAchievements/v1/`,
+    SteamLevel: "/IPlayerService/GetSteamLevel/v1",
 }
 
 async function SteamApi(method, params) {
@@ -85,6 +86,15 @@ app.get("/achievements/:id", (req, res) => {
     }
     ).then(data => res.send(data));
 });
+
+app.get("/achievements/:id", (req, res) => {
+    SteamApi(Endpoints.Achievements, {
+        steamid: req.params.id,
+        appid: req.query.appid
+    }
+    ).then(data => res.send(data));
+});
+
 
 app.listen(PORT, () => {
     cache.clear();
