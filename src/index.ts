@@ -1,18 +1,19 @@
-const fetch = require("node-fetch");
-const cors = require("cors");
+import * as express from "express";
+import fetch from "node-fetch";
+import * as cors from "cors";
 
-const Cache = require("./Cache");
+import buildCache from "./Cache";
+import { GetStoreFeatured } from "./SteamApi";
 
 const PORT = 8080;
 
 const apiKey = "7B4DEF2A374D9B1AA1E9BC9538412237";
 const apiEndpoint = "http://api.steampowered.com";
 
-const express = require("express");
 const app = express();
 app.use(cors());
 
-const cache = new Cache();
+const cache = buildCache(false);
 
 const Endpoints = {
     PlayerSummary: `ISteamUser/GetPlayerSummaries/v2/`,
@@ -24,17 +25,17 @@ const Endpoints = {
     SteamLevel: "/IPlayerService/GetSteamLevel/v1",
 }
 
-async function SteamApi(method, params) {
-    url = `${apiEndpoint}/${method}?key=${apiKey}&format=json`;
-    params = Object.entries(params).map(([key, val]) =>
-        `${key}=${val}`).join("&");
+async function SteamApi(method: string, params: any) {
+    let url = `${apiEndpoint}/${method}?key=${apiKey}&format=json`;
+    params = Object.keys(params).map(key =>
+        `${key}=${params[key]}`).join("&");
     const request = `${url}&${params}`;
     console.log(request);
 
     const exists = await cache.exists(request);
 
     if (exists) {
-        return cache.get(request).then(res => JSON.parse(res));
+        return cache.get(request).then((res: any) => JSON.parse(res));
     }
     else {
         const res = await fetch(request).then(res => res.json());
@@ -93,6 +94,12 @@ app.get("/achievements/:id", (req, res) => {
         appid: req.query.appid
     }
     ).then(data => res.send(data));
+});
+
+app.get("/featured", (req, res) => {
+    GetStoreFeatured().then(data => {
+        res.send(data);
+    });
 });
 
 
