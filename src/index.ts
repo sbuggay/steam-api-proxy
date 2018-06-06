@@ -7,7 +7,7 @@ import { GetStoreFeatured } from "./SteamApi";
 
 const PORT = 8080;
 
-const apiKey = "7B4DEF2A374D9B1AA1E9BC9538412237";
+const apiKey = "";
 const apiEndpoint = "http://api.steampowered.com";
 
 const app = express();
